@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
 import { Code, Database, FileText, Rocket, BarChart3, Settings, ArrowRight } from 'lucide-react';
-import { CodeMigrationWizard } from './CodeMigrationWizard';
-import { DatabaseMigrationWizard } from './DatabaseMigrationWizard';
-import { DocumentationGeneratorWizard } from './DocumentationGeneratorWizard';
-import { CodeQualityWizard } from './CodeQualityWizard';
+import { CodeMigrationWizard } from './code-migration/CodeMigrationWizard';
+import { DatabaseMigrationWizard } from './database-migration/DatabaseMigrationWizard';
+import { DocumentationGeneratorWizard } from './documentation-generation/DocumentationGeneratorWizard';
+import { CodeQualityWizard } from './code-quality/CodeQualityWizard';
+import { ProjectMigrationWizard } from './project-migration/ProjectMigrationWizard';
+import { BusinessLogicWizard } from './business-logic/BusinessLogicWizard';
 
-type MenuItem = 'home' | 'converter' | 'database' | 'documentation' | 'migration' | 'quality' | 'settings';
+type MenuItem = 'home' | 'converter' | 'database' | 'documentation' | 'migration' | 'quality' | 'business-logic' | 'settings';
 
-export const MainPage: React.FC = () => {
+interface MainPageProps {
+  onNavigateToQuality?: () => void;
+}
+
+export const MainPage: React.FC<MainPageProps> = ({ onNavigateToQuality }) => {
   const [activeMenu, setActiveMenu] = useState<MenuItem>('home');
 
   const renderContent = () => {
@@ -21,8 +27,14 @@ export const MainPage: React.FC = () => {
       case 'documentation':
         return <DocumentationGeneratorWizard onBackToMain={() => setActiveMenu('home')} />;
       
+      case 'migration':
+        return <ProjectMigrationWizard onBackToMain={() => setActiveMenu('home')} />;
+      
       case 'quality':
         return <CodeQualityWizard onBackToMain={() => setActiveMenu('home')} />;
+      
+      case 'business-logic':
+        return <BusinessLogicWizard onBackToMain={() => setActiveMenu('home')} />;
       
       case 'home':
         return (
@@ -186,30 +198,68 @@ export const MainPage: React.FC = () => {
                     </div>
                   </div>
 
+{/* Full Project Migration */}
+                  <div className="bg-white rounded-xl p-4 shadow-md border border-gray-100 hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <Rocket className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h3 className="text-lg font-semibold text-gray-800">Full Project Migration</h3>
+                        </div>
+                        <p className="text-gray-600 mb-3 text-sm leading-relaxed">
+                          Migrate entire projects between frameworks. Transform .NET Framework to .NET Core, Java 8 to Java 17, and modernize complete application stacks.
+                        </p>
+                        <button
+                          onClick={() => setActiveMenu('migration')}
+                          className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium group text-sm"
+                        >
+                          Get Started <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                        <div className="flex flex-wrap gap-1 mt-3">
+                          <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">.NET → Core</span>
+                          <span className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full">Java 8 → 21</span>
+                          <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full">Full Stack</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+				  
+				  {/* Business Logic Extractor & Project Generator */}
+                <div className="bg-white rounded-xl p-5 shadow-md border border-gray-100 hover:shadow-lg transition-all duration-200 hover:scale-105">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
+                      <BarChart3 className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">Business Logic Extractor & Project Generator</h3>
+                      <p className="text-gray-600 mb-3 text-sm leading-relaxed">
+                        Upload complete projects to extract business logic using AI, edit the logic, and generate entirely new applications in different frameworks.
+                      </p>
+                      <button
+                        onClick={() => setActiveMenu('business-logic')}
+                        className="inline-flex items-center text-indigo-600 hover:text-indigo-700 font-medium group text-sm"
+                      >
+                        Get Started <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                      </button>
+                      <div className="flex flex-wrap gap-1 mt-3">
+                        <span className="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs rounded-full">Logic Extraction</span>
+                        <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">Complete Generation</span>
+                        <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full">Multi-Framework</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 </div>
               </div>
 
               {/* Coming Soon Features */}
               <div className="mb-8">
                 <h2 className="text-xl font-bold text-gray-800 text-center mb-4">Coming Soon</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 justify-center">
-                  {/* Full Project Migration */}
-                  <div className="bg-white rounded-xl p-4 shadow-md border border-gray-100 opacity-60 grayscale">
-                    <div className="flex items-start space-x-4">
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Rocket className="h-5 w-5 text-gray-500" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="text-lg font-semibold text-gray-500">Full Project Migration</h3>
-                          <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">Soon</span>
-                        </div>
-                        <p className="text-gray-500 text-sm">
-                          Migrate entire projects between frameworks. Transform .NET Framework to .NET Core, Java 8 to Java 17, and modernize complete application stacks.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
 
                   {/* Settings & Configuration */}
                   <div className="bg-white rounded-xl p-4 shadow-md border border-gray-100 opacity-60 grayscale">
@@ -273,7 +323,7 @@ export const MainPage: React.FC = () => {
                   <span>© 2025 ACL Digital</span>
                 </div>
                 <p className="text-xs text-gray-400 mt-1">
-                  All rights reserved. Made with ❤️ by Team for Thinkathon.
+                  All rights reserved. Made with ❤️ by Mordenize Team for Thinkathon.
                 </p>
               </div>
             </div>

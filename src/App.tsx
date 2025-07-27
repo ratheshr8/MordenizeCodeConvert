@@ -1,9 +1,9 @@
 import React from 'react';
 import { MainPage } from './components/MainPage';
 import { ConfigurationGuide } from './components/ConfigurationGuide';
-import { CodeQualityWizard } from './components/CodeQualityWizard';
+import { ChatbotAssistant } from './components/ChatbotAssistant';
 
-type AppView = 'main' | 'quality';
+type AppView = 'main';
 
 function App() {
   const [currentView, setCurrentView] = React.useState<AppView>('main');
@@ -15,18 +15,10 @@ function App() {
     import.meta.env.VITE_AZURE_OPENAI_DEPLOYMENT_NAME
   );
 
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case 'quality':
-        return <CodeQualityWizard onBackToMain={() => setCurrentView('main')} />;
-      case 'main':
-      default:
-        return <MainPage onNavigateToQuality={() => setCurrentView('quality')} />;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ChatbotAssistant />
       {!isConfigured && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <ConfigurationGuide />
@@ -34,7 +26,7 @@ function App() {
       )}
       
       {isConfigured ? (
-        renderCurrentView()
+        <MainPage />
       ) : (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
