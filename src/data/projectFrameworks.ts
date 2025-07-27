@@ -47,6 +47,15 @@ export const projectFrameworks: ProjectFramework[] = [
     technologies: ['Ruby', 'Rails 3.x', 'ERB', 'SASS'],
     filePatterns: ['*.rb', '*.erb', '*.scss', 'Gemfile', 'config.ru']
   },
+  {
+    id: 'cobol',
+    name: 'COBOL Legacy Systems',
+    category: 'Legacy',
+    icon: '🏛️',
+    description: 'Legacy COBOL mainframe and business applications',
+    technologies: ['COBOL', 'JCL', 'CICS', 'DB2', 'IMS'],
+    filePatterns: ['*.cob', '*.cbl', '*.cpy', '*.jcl', '*.prc']
+  },
 
   // Modern Web Frameworks (Target)
   {
