@@ -1,0 +1,389 @@
+import { AnalysisResult, WorkflowStep, ConversionResult, ConversionOptions } from '../types';
+import { FlowChart } from '../types';
+
+class AzureAIService {
+  private endpoint: string;
+  private apiKey: string;
+  private deploymentName: string;
+
+  constructor() {
+    const endpoint = import.meta.env.VITE_AZURE_OPENAI_ENDPOINT;
+    const apiKey = import.meta.env.VITE_AZURE_OPENAI_API_KEY;
+    
+    if (!endpoint || !apiKey) {
+      throw new Error('Azure OpenAI configuration is missing');
+    }
+
+    this.endpoint = endpoint;
+    this.apiKey = apiKey;
+    this.deploymentName = import.meta.env.VITE_AZURE_OPENAI_DEPLOYMENT_NAME;
+  }
+
+  private async makeRequest(messages: Array<{ role: string; content: string }>, options: { temperature: number; maxTokens: number }) {
+    const url = `${this.endpoint}/openai/deployments/${this.deploymentName}/chat/completions?api-version=2024-02-15-preview`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': this.apiKey,
+      },
+      body: JSON.stringify({
+        messages,
+        temperature: options.temperature,
+        max_tokens: options.maxTokens,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Azure OpenAI API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  }
+
+  async analyzeCode(files: any[], sourceLanguage: string): Promise<AnalysisResult> {
+    try {
+      const codeContent = files.map(file => `// File: ${file.name}\n${file.content || ''}`).join('\n\n');
+      
+      const prompt = `
+        Analyze the following ${sourceLanguage} code and provide a comprehensive analysis:
+
+        ${codeContent}
+
+        Please provide your analysis in the following JSON format:
+        {
+          "languageFeatures": ["feature1", "feature2", ...],
+          "programOverview": "Brief overview of what this program does",
+          "businessLogic": ["logic1", "logic2", ...],
+          "dataProcessingFlow": ["step1", "step2", ...],
+          "recommendations": ["recommendation1", "recommendation2", ...]
+        }
+
+        Focus on:
+        1. Language-specific features used (OOP, functional programming, design patterns, etc.)
+        2. Overall program purpose and functionality
+        3. Key business logic components
+        4. Data flow and processing steps
+        5. Recommendations for modernization and best practices
+      `;
+
+      const response = await this.makeRequest(
+        [
+          {
+            role: 'system',
+            content: 'You are an expert software architect and code analyst. Provide detailed, accurate analysis of code in JSON format.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        {
+          temperature: 0.3,
+          maxTokens: 2000,
+        }
+      );
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from Azure OpenAI');
+      }
+
+      // Extract JSON from response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Invalid JSON response from AI');
+      }
+
+      return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      console.error('Error analyzing code:', error);
+      throw new Error('Failed to analyze code with Azure GPT-4');
+    }
+  }
+
+  async generateWorkflow(sourceLanguage: string, targetLanguage: string): Promise<WorkflowStep[]> {
+    try {
+      const prompt = `
+        Generate a detailed workflow for analyzing and understanding ${sourceLanguage} code structure and logic flow.
+        
+        Provide the response in the following JSON format:
+        {
+          "steps": [
+            {
+              "id": "1",
+              "title": "Step Title",
+              "description": "Detailed description of what this step does",
+              "status": "pending"
+            }
+          ]
+        }
+
+        Include steps for analyzing ${sourceLanguage} code:
+        1. Parse and understand code structure
+        2. Identify main functions and methods
+        3. Map data flow and dependencies
+        4. Analyze control flow and logic paths
+        5. Document key algorithms and patterns
+        6. Summarize overall program architecture
+
+        Make sure each step has a clear, actionable description.
+      `;
+
+      const response = await this.makeRequest(
+        [
+          {
+            role: 'system',
+            content: 'You are an expert in software analysis and code comprehension. Generate detailed, practical workflow steps for understanding code structure.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        {
+          temperature: 0.3,
+          maxTokens: 1500,
+        }
+      );
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from Azure OpenAI');
+      }
+
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Invalid JSON response from AI');
+      }
+
+      const result = JSON.parse(jsonMatch[0]);
+      return result.steps.map((step: any, index: number) => ({
+        ...step,
+        status: index === 0 ? 'completed' : index === 1 ? 'active' : 'pending'
+      }));
+    } catch (error) {
+      console.error('Error generating workflow:', error);
+      throw new Error('Failed to generate workflow with Azure GPT-4');
+    }
+  }
+
+  async generateFlowChart(files: any[], sourceLanguage: string): Promise<FlowChart> {
+    try {
+      const codeContent = files.map(file => `// File: ${file.name}\n${file.content || ''}`).join('\n\n');
+      
+      const prompt = `
+        Analyze the following ${sourceLanguage} code and generate a detailed flow chart representing the program's logic flow and execution path.
+        
+        Code to analyze:
+        ${codeContent}
+        
+        Provide the response in the following JSON format:
+        {
+          "nodes": [
+            {
+              "id": "1",
+              "type": "start|process|decision|end",
+              "title": "Node Title",
+              "description": "Brief description",
+              "x": 100,
+              "y": 50
+            }
+          ],
+          "connections": [
+            {
+              "from": "1",
+              "to": "2",
+              "label": "Optional label"
+            }
+          ]
+        }
+
+        Create a flow chart that represents the actual code logic:
+        1. Start node
+        2. Main program entry point
+        3. Key functions and methods as process nodes
+        4. Decision points (if/else, loops, switches) from the actual code
+        5. Data processing steps
+        6. End node
+
+        Position nodes with appropriate x,y coordinates (0-800 for x, 0-600 for y) to create a clear, readable flow.
+        Use node types: "start" for program start, "process" for functions/operations, "decision" for conditionals/loops, "end" for program end.
+        
+        Base the flow chart on the actual code structure and logic, not on a generic conversion process.
+      `;
+
+      const response = await this.makeRequest(
+        [
+          {
+            role: 'system',
+            content: 'You are an expert in software analysis and code visualization. Create clear, logical flow charts that represent the actual program logic and execution flow.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        {
+          temperature: 0.3,
+          maxTokens: 2000,
+        }
+      );
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from Azure OpenAI');
+      }
+
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Invalid JSON response from AI');
+      }
+
+      return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      console.error('Error generating flow chart:', error);
+      throw new Error('Failed to generate flow chart with Azure GPT-4');
+    }
+  }
+
+  async convertCode(
+    files: any[],
+    sourceLanguage: string,
+    targetLanguage: string,
+    options: ConversionOptions
+  ): Promise<ConversionResult> {
+    try {
+      const codeContent = files.map(file => `// File: ${file.name}\n${file.content || ''}`).join('\n\n');
+      
+      const optionsText = Object.entries(options)
+        .filter(([_, value]) => value)
+        .map(([key, _]) => {
+          switch (key) {
+            case 'preserveComments': return 'Preserve original comments';
+            case 'generateDocs': return 'Generate comprehensive documentation';
+            case 'optimizeCode': return 'Apply modern optimization techniques';
+            case 'includeTests': return 'Include unit tests';
+            default: return key;
+          }
+        })
+        .join(', ');
+
+      const prompt = `
+        Convert the following ${sourceLanguage} code to ${targetLanguage}.
+        
+        Conversion requirements:
+        ${optionsText}
+
+        Original code:
+        ${codeContent}
+
+        Please provide your response in the following JSON format:
+        {
+          "originalCode": "The original code",
+          "convertedCode": "The converted code with all improvements",
+          "summary": "Brief summary of the conversion",
+          "changes": ["change1", "change2", ...],
+          "filesGenerated": 1,
+          "warnings": ["warning1", "warning2", ...],
+          "appliedSettings": ["setting1", "setting2", ...],
+          "optimizations": ["optimization1", "optimization2", ...],
+          "documentationGenerated": true,
+          "convertedFiles": [
+            {
+              "name": "main.py",
+              "content": "converted code content",
+              "type": "code"
+            },
+            {
+              "name": "test_main.py", 
+              "content": "unit test content",
+              "type": "test"
+            },
+            {
+              "name": "README.md",
+              "content": "documentation content", 
+              "type": "documentation"
+            }
+          ]
+        }
+
+        Ensure the converted code:
+        1. Follows ${targetLanguage} best practices and conventions
+        2. Is production-ready and well-structured
+        3. Includes proper error handling
+        4. Maintains the original functionality
+        ${options.optimizeCode ? '5. Uses modern language features and optimization techniques' : '5. Uses standard language features without aggressive optimization'}
+        ${options.includeTests ? '6. Includes comprehensive unit tests in separate test files' : ''}
+        ${options.generateDocs ? '7. Has detailed documentation and comments' : ''}
+        
+        ${options.optimizeCode ? `
+        Apply these optimizations:
+        - Use modern language features and patterns
+        - Optimize performance where possible
+        - Apply design patterns and best practices
+        - Improve code structure and readability
+        - Use efficient algorithms and data structures
+        ` : `
+        Optimization approach:
+        - Keep the code simple and straightforward
+        - Focus on correctness over performance optimization
+        - Use standard language features without advanced optimizations
+        - Maintain clear, readable code structure
+        `}
+        
+        ${options.includeTests ? `
+        For unit tests:
+        - Create separate test files with appropriate naming conventions for ${targetLanguage}
+        - Include comprehensive test coverage for all functions and methods
+        - Use appropriate testing frameworks for ${targetLanguage}
+        - Include both positive and negative test cases
+        - Add setup and teardown methods where needed
+        ` : ''}
+        
+        ${options.generateDocs ? `
+        For documentation:
+        - Create README.md with project overview, setup instructions, and usage examples
+        - Include inline code documentation and comments
+        - Document API endpoints, function signatures, and parameters
+        ` : ''}
+      `;
+
+      const response = await this.makeRequest(
+        [
+          {
+            role: 'system',
+            content: 'You are an expert software developer proficient in multiple programming languages. Convert code accurately while applying modern best practices.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        {
+          temperature: 0.2,
+          maxTokens: 4000,
+        }
+      );
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from Azure OpenAI');
+      }
+
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Invalid JSON response from AI');
+      }
+
+      return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      console.error('Error converting code:', error);
+      throw new Error('Failed to convert code with Azure GPT-4');
+    }
+  }
+}
+
+export const azureAIService = new AzureAIService();
