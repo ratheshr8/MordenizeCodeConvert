@@ -73,3 +73,22 @@ export interface ConversionResult {
     type: 'code' | 'test' | 'documentation';
   }[];
 }
+
+// Re-export code quality types for convenience
+export type { 
+  CodeQualityMetric, 
+  CodeQualityIssue, 
+  CodeQualityFile, 
+  CodeQualityAnalysisResult, 
+  CodeQualityOptions 
+} from './codeQuality';
+
+// Re-export business logic types for convenience
+export type {
+  BusinessLogicProject,
+  BusinessLogicFile,
+  BusinessLogicExtractionResult,
+  BusinessLogicGenerationOptions,
+  BusinessLogicGenerationResult,
+  TargetFramework
+} from './businessLogic';

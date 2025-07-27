@@ -460,6 +460,151 @@ class AzureAIService {
     }
   }
 
+  async extractBusinessLogic(files: any[], sourceLanguage: string): Promise<string> {
+    try {
+      const codeContent = files.map(file => `// File: ${file.name}\n${file.content || ''}`).join('\n\n');
+      
+      const prompt = `
+        Extract and simplify the core business logic from the following ${sourceLanguage} code.
+        Focus on the essential business rules, algorithms, and data processing logic.
+        Remove implementation details, UI code, and infrastructure code.
+        Present the logic in a clean, readable pseudocode format that can be easily understood and edited.
+
+        Code to analyze:
+        ${codeContent}
+
+        Please provide a clean business logic representation that includes:
+        1. Main business rules and validation logic
+        2. Core algorithms and calculations
+        3. Data transformation and processing steps
+        4. Decision-making logic and conditions
+        5. Key business workflows
+
+        Format the output as readable pseudocode with clear comments explaining each business rule.
+      `;
+
+      const response = await this.makeRequest(
+        [
+          {
+            role: 'system',
+            content: 'You are an expert business analyst and software architect. Extract core business logic from code and present it in a clear, editable format.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        {
+          temperature: 0.3,
+          maxTokens: 3000,
+        }
+      );
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from Azure OpenAI');
+      }
+
+      return content;
+    } catch (error) {
+      console.error('Error extracting business logic:', error);
+      throw new Error('Failed to extract business logic with Azure GPT-4');
+    }
+  }
+
+  async convertBusinessLogicToCode(
+    businessLogic: string,
+    targetLanguage: string,
+    options: ConversionOptions
+  ): Promise<ConversionResult> {
+    try {
+      const optionsText = Object.entries(options)
+        .filter(([_, value]) => value)
+        .map(([key, _]) => {
+          switch (key) {
+            case 'preserveComments': return 'Include detailed comments';
+            case 'generateDocs': return 'Generate comprehensive documentation';
+            case 'optimizeCode': return 'Apply modern optimization techniques';
+            case 'includeTests': return 'Include unit tests';
+            default: return key;
+          }
+        })
+        .join(', ');
+
+      const prompt = `
+        Convert the following business logic pseudocode to ${targetLanguage} code.
+        
+        Conversion requirements:
+        ${optionsText}
+
+        Business Logic:
+        ${businessLogic}
+
+        Please provide your response in the following JSON format:
+        {
+          "originalCode": "The original business logic",
+          "convertedCode": "The converted ${targetLanguage} code with all improvements",
+          "summary": "Brief summary of the conversion from business logic to code",
+          "changes": ["change1", "change2", ...],
+          "filesGenerated": 1,
+          "warnings": ["warning1", "warning2", ...],
+          "appliedSettings": ["setting1", "setting2", ...],
+          "optimizations": ["optimization1", "optimization2", ...],
+          "documentationGenerated": true,
+          "convertedFiles": [
+            {
+              "name": "main.${targetLanguage === 'python' ? 'py' : targetLanguage === 'java' ? 'java' : 'js'}",
+              "content": "converted code content",
+              "type": "code"
+            }
+          ]
+        }
+
+        Ensure the converted code:
+        1. Implements all the business logic rules accurately
+        2. Follows ${targetLanguage} best practices and conventions
+        3. Is production-ready and well-structured
+        4. Includes proper error handling
+        5. Uses appropriate data structures and algorithms
+        ${options.optimizeCode ? '6. Uses modern language features and optimization techniques' : '6. Uses standard language features'}
+        ${options.includeTests ? '7. Includes comprehensive unit tests' : ''}
+        ${options.generateDocs ? '8. Has detailed documentation and comments' : ''}
+      `;
+
+      const response = await this.makeRequest(
+        [
+          {
+            role: 'system',
+            content: 'You are an expert software developer. Convert business logic to production-ready code while maintaining all business rules and applying modern best practices.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        {
+          temperature: 0.2,
+          maxTokens: 4000,
+        }
+      );
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from Azure OpenAI');
+      }
+
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Invalid JSON response from AI');
+      }
+
+      return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      console.error('Error converting business logic to code:', error);
+      throw new Error('Failed to convert business logic to code with Azure GPT-4');
+    }
+  }
+
   async convertCode(
     files: any[],
     sourceLanguage: string,
